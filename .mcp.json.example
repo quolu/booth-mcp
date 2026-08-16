@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "booth": {
+      "command": "node",
+      "args": ["booth-mcp/src/index.js"]
+    }
+  }
+}

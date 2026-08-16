@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" font-family="'Segoe UI', 'Yu Gothic UI', 'Hiragino Sans', system-ui, sans-serif">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0f1e24"/>
+      <stop offset="100%" stop-color="#16323a"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#3aa8a0"/>
+      <stop offset="100%" stop-color="#5ad3c8"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1280" height="640" fill="url(#bg)"/>
+  <rect x="0" y="0" width="1280" height="6" fill="url(#accent)"/>
+
+  <!-- subtle grid -->
+  <g stroke="#ffffff" stroke-opacity="0.03">
+    <path d="M80 0V640M280 0V640M480 0V640M680 0V640M880 0V640M1080 0V640"/>
+    <path d="M0 120H1280M0 260H1280M0 400H1280M0 540H1280"/>
+  </g>
+
+  <!-- title -->
+  <text x="88" y="216" fill="#ffffff" font-size="84" font-weight="700" letter-spacing="-1">booth-mcp</text>
+  <rect x="88" y="242" width="128" height="5" rx="2.5" fill="url(#accent)"/>
+
+  <!-- pitch -->
+  <text x="88" y="324" fill="#dbe9ec" font-size="35" font-weight="500">BOOTHの商品更新を、ブラウザ操作なしで数秒に。</text>
+  <text x="88" y="376" fill="#8fb3b8" font-size="27">説明文・段落・価格・ZIP差し替え・画像を自然文で。MCPサーバー。</text>
+
+  <!-- capability chips -->
+  <g font-size="23" font-weight="600">
+    <rect x="88" y="432" width="196" height="54" rx="27" fill="#3aa8a0" fill-opacity="0.16" stroke="#3aa8a0" stroke-opacity="0.5"/>
+    <text x="186" y="466" fill="#7fded4" text-anchor="middle">ZIP差し替え</text>
+
+    <rect x="300" y="432" width="168" height="54" rx="27" fill="#3aa8a0" fill-opacity="0.16" stroke="#3aa8a0" stroke-opacity="0.5"/>
+    <text x="384" y="466" fill="#7fded4" text-anchor="middle">段落編集</text>
+
+    <rect x="484" y="432" width="140" height="54" rx="27" fill="#3aa8a0" fill-opacity="0.16" stroke="#3aa8a0" stroke-opacity="0.5"/>
+    <text x="554" y="466" fill="#7fded4" text-anchor="middle">価格</text>
+
+    <rect x="640" y="432" width="140" height="54" rx="27" fill="#3aa8a0" fill-opacity="0.16" stroke="#3aa8a0" stroke-opacity="0.5"/>
+    <text x="710" y="466" fill="#7fded4" text-anchor="middle">画像</text>
+  </g>
+
+  <!-- footer meta -->
+  <text x="88" y="566" fill="#5d848b" font-size="24" font-family="'Cascadia Mono', Consolas, monospace">16 tools · Node · MCP · MIT</text>
+
+  <!-- right side terminal card -->
+  <g transform="translate(830,176)">
+    <rect x="0" y="0" width="372" height="252" rx="14" fill="#08161b" stroke="#2c515a"/>
+    <circle cx="26" cy="26" r="6.5" fill="#ff5f57"/>
+    <circle cx="48" cy="26" r="6.5" fill="#febc2e"/>
+    <circle cx="70" cy="26" r="6.5" fill="#28c840"/>
+    <g font-family="'Cascadia Mono', Consolas, monospace" font-size="17.5">
+      <text x="24" y="86" fill="#7fded4">&gt; LiveTRのZIPを</text>
+      <text x="24" y="114" fill="#7fded4">  v1.4.0に差し替えて</text>
+      <text x="24" y="158" fill="#5d848b">booth_replace_download</text>
+      <text x="24" y="192" fill="#dbe9ec">✓ 完了 (2.1s)</text>
+    </g>
+  </g>
+</svg>
