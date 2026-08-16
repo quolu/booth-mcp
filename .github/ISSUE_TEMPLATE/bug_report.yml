@@ -1,0 +1,59 @@
+name: バグ報告 / Bug report
+description: ツールが動かない・期待と違う動きをする
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ⚠️ **cookieやセッションIDを貼らないでください。** ログを貼る場合は必ず伏せ字にしてください。
+  - type: dropdown
+    id: tool
+    attributes:
+      label: どのツールで起きましたか
+      options:
+        - booth_list_items / booth_get_item
+        - booth_update_item
+        - 段落系（booth_*_paragraph(s)）
+        - booth_set_price / booth_update_variations
+        - ダウンロードファイル系（booth_*_download）
+        - 画像系（booth_*_image(s)）
+        - cookie自動同期（booth-cookie-sync）
+        - その他 / 不明
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: 何が起きたか
+      description: 実行した内容と、実際に起きたこと
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: 期待した動作
+    validations:
+      required: true
+  - type: textarea
+    id: error
+    attributes:
+      label: エラーメッセージ（cookieは伏せる）
+      render: text
+  - type: dropdown
+    id: ui
+    attributes:
+      label: 同じ操作をBOOTHの管理画面から手動で行うと成功しますか
+      description: BOOTH側の仕様変更かどうかの切り分けに使います
+      options:
+        - 手動なら成功する（＝仕様変更の可能性）
+        - 手動でも失敗する
+        - 試していない
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: 環境
+      placeholder: "Windows 11 / Node v22.0.0 / booth-mcp v0.3.0"
+    validations:
+      required: true

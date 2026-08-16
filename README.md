@@ -193,6 +193,13 @@ cookie自動同期を入れていれば `.cookie` が更新されて自動復帰
 - 商品情報を実際に書き換えるツールです。**まず非公開商品や下書きで試す**ことを強く推奨します。
 - 本ソフトウェアの利用によって生じたいかなる損害についても、作者は責任を負いません（[MIT License](LICENSE)）。
 
+## 開発・貢献
+
+バグ報告・改善提案は [Issue](https://github.com/quolu/booth-mcp/issues) へ（**cookieは伏せて**ください）。
+開発手順・テスト方法は [CONTRIBUTING.md](CONTRIBUTING.md)、cookieの取り扱いは [SECURITY.md](SECURITY.md) を参照。
+
+BOOTH側の仕様変更で壊れた場合の調査手順も CONTRIBUTING に書いてあります。
+
 ## ライセンス
 
 [MIT](LICENSE)
