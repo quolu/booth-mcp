@@ -15,7 +15,7 @@ BOOTH管理画面（manage.booth.pm）の商品更新を、UI操作なしのHTTP
 | DLファイル削除 | `DELETE https://manage.booth.pm/items/{id}/downloadables/{dl_id}` | 実証200 |
 | 画像追加 | `POST https://manage.booth.pm/items/{id}/images` | **FormData**、フィールド名 `image[file]`（.jpg/.jpeg/.gif/.png、複数可）。実証200、レスポンス`{files}` |
 | 画像削除 | `DELETE https://manage.booth.pm/items/{id}/images/{image_id}` | 実証204 |
-| 画像並べ替え | `PATCH https://manage.booth.pm/items/{id}/images/reorder` | body `{"image":{"ids":["<id>",...]}}`（**文字列ID配列**）。実証200 |
+| 画像並べ替え | `PATCH https://manage.booth.pm/items/{id}/images/reorder` | body `{"image":{"ids":["<id>",...]}}`（**文字列ID配列**）。実証200。**罠: 現在の並びから「1枚だけ移動した並び」しか適用されない**。複数枚が同時に動く並び（全逆順等）は HTTP 200 のまま黙って無視される（2026-08-16 実測）。任意の並びは1枚移動の列に分解して連続送信する（booth-mcp の `reorderImages` が自動でやる）。ヘッダ（Origin/Referer/X-Requested-With/UA）は無関係 |
 | 価格・在庫更新 | `POST https://manage.booth.pm/items/{id}/variations` | body `{"variations":[{…GETのvariations要素にprice/stock等を反映…}]}`。実証200 |
 
 ### ZIP差し替え（バージョンアップ）の手順 ＝ 実証済みレシピ

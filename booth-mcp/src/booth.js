@@ -277,10 +277,32 @@ export class BoothClient {
   }
 
   // 画像の並べ替え。ids は希望順の画像ID配列（先頭がメイン画像＝サムネ）。
+  // BOOTHの reorder は「現在の並びから1枚だけ移動した並び」しか適用しない
+  // （複数枚が同時に動く並びは HTTP 200 のまま無視される。2026-08-16 実測）。
+  // 公式UIのドラッグ1回と同じ「1枚移動」の列に分解して順に送る。
   async reorderImages(id, ids) {
-    return this._mutate("PATCH", `/items/${id}/images/reorder`, {
-      json: { image: { ids: ids.map(String) } },
-    });
+    const want = ids.map(String);
+    const current = ((await this.getItem(id)).images || []).map((i) => String(i.id));
+    if ([...want].sort().join(",") !== [...current].sort().join(",")) {
+      throw new Error(
+        `image_idsは現在の全画像ID [${current.join(", ")}] を過不足なく含めてください。`
+      );
+    }
+    for (let i = 0; i < want.length; i++) {
+      if (current[i] === want[i]) continue;
+      current.splice(current.indexOf(want[i]), 1);
+      current.splice(i, 0, want[i]);
+      await this._mutate("PATCH", `/items/${id}/images/reorder`, {
+        json: { image: { ids: [...current] } },
+      });
+    }
+    const after = ((await this.getItem(id)).images || []).map((i) => String(i.id));
+    if (after.join(",") !== want.join(",")) {
+      throw new Error(
+        `並べ替えがBOOTH側に反映されませんでした（要求: ${want.join(",")} / 現在: ${after.join(",")}）。`
+      );
+    }
+    return { ids: after };
   }
 }
 
