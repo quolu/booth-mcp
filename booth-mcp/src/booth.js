@@ -129,13 +129,28 @@ export class BoothClient {
         `未対応の更新フィールド: ${unknown.join(", ")}（対応: ${ITEM_FIELDS.join(", ")}。価格はsetPrice、画像/DLは専用メソッド）`
       );
     }
+    const { state: requestedState, ...itemFields } = fields;
+    if (requestedState !== undefined && !["public", "private"].includes(requestedState)) {
+      throw new Error("公開状態はpublicまたはprivateを指定してください。");
+    }
     const item = await this.getItem(id);
-    Object.assign(item, fields);
+    Object.assign(item, itemFields);
+    // stateは読取値。公式編集画面と同じ状態遷移イベントを送る。
+    if (requestedState !== undefined && requestedState !== item.state) {
+      item.state_event = requestedState === "public" ? "publish" : "to_private";
+    }
     // page_design はオブジェクトだと無視される。JSON文字列で送る（実測）。
     if (item.page_design && typeof item.page_design === "object") {
       item.page_design = JSON.stringify(item.page_design);
     }
-    return this._mutate("PATCH", `/items/${id}`, { json: { item } });
+    const result = await this._mutate("PATCH", `/items/${id}`, { json: { item } });
+    if (requestedState !== undefined) {
+      const saved = await this.getItem(id);
+      if (saved.state !== requestedState) {
+        throw new Error(`公開状態が反映されませんでした: 指定=${requestedState} 保存=${saved.state}`);
+      }
+    }
+    return result;
   }
 
   // 価格変更: item.price と 全variationのprice を揃えて更新（UI表示と整合させるため両方叩く）。
