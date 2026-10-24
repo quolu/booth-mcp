@@ -13,6 +13,7 @@ import { readFileSync, existsSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { BoothClient } from "./booth.js";
+import { downloadAndVerify } from "./download.js";
 
 // パスはすべてこのスクリプトの位置から解決する（絶対パスの設定焼き込みを不要にする）。
 const PKG_DIR = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -229,6 +230,23 @@ const TOOLS = [
     },
   },
   {
+    name: "booth_download_and_verify",
+    description: "商品の管理側ダウンロードを再取得し、期待SHA-256とサイズを検証して保存する。既存ファイルは上書きしない。variation_id指定時は紐付けも前後で確認。BOOTHの商品は変更しない。",
+    inputSchema: {
+      type: "object",
+      properties: {
+        item_id: { type: "integer", minimum: 1, description: "商品ID" },
+        downloadable_id: { type: "integer", minimum: 1, description: "取得するダウンロードファイルID" },
+        file_path: { type: "string", description: "新しく保存するファイルの絶対パス" },
+        expected_sha256: { type: "string", pattern: "^[a-fA-F0-9]{64}$", description: "配布前の原本などから得た照合用SHA-256" },
+        expected_size: { type: "integer", minimum: 0, description: "期待バイト数。省略時は商品のfile_sizeを使う" },
+        variation_id: { type: "integer", minimum: 1, description: "このバリエーションに対象ファイルが紐付くことも確認する" },
+      },
+      required: ["item_id", "downloadable_id", "file_path", "expected_sha256"],
+      additionalProperties: false,
+    },
+  },
+  {
     name: "booth_delete_download",
     description: "商品のダウンロードファイルを1つ削除する。",
     inputSchema: {
@@ -288,7 +306,7 @@ const TOOLS = [
 ];
 
 const server = new Server(
-  { name: "booth-mcp", version: "0.3.0" },
+  { name: "booth-mcp", version: "0.4.0" },
   { capabilities: { tools: {} } }
 );
 
@@ -401,6 +419,11 @@ async function dispatch(name, a) {
       };
     }
 
+    case "booth_download_and_verify":
+      return downloadAndVerify(c, a.item_id, a.downloadable_id, a.file_path, {
+        expectedSha256: a.expected_sha256, expectedSize: a.expected_size, variationId: a.variation_id,
+      });
+
     case "booth_delete_download":
       return c.deleteDownload(a.item_id, a.downloadable_id);
 
@@ -430,4 +453,4 @@ async function dispatch(name, a) {
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
-console.error("booth-mcp v0.3.0 ready");
+console.error("booth-mcp v0.4.0 ready");

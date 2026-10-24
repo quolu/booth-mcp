@@ -77,7 +77,22 @@ node --input-type=module -e 'import {resolve} from "node:path"; console.log(JSON
 ファイルのアップロードには、このMacから読めるローカルパスを渡す。
 Windowsの`C:\\...`というパスはMacから使えない。
 
-## ツール（全16種）
+### Codexでの登録
+
+`.mcp.json`の例だけではCodexの登録を済ませたことにはならない。
+利用中のユーザー/信頼済みプロジェクトの`.codex/config.toml`へ、実際のNodeとサーバーの絶対パスを指定する：
+
+```toml
+[mcp_servers.booth]
+command = "/absolute/path/to/node"
+args = ["/absolute/path/to/booth-mcp/booth-mcp/src/index.js"]
+```
+
+既存設定を保持して追加し、対象クライアントのMCP一覧で道具が認識されたか確認する。
+実行中の会話に反映済みとは推測せず、進行中の作業を中断しない。
+公式仕様: [CodexのMCP登録](https://learn.chatgpt.com/docs/extend/mcp?surface=cli)。
+
+## ツール（全17種）
 
 | ツール | 用途 |
 |---|---|
@@ -91,7 +106,13 @@ Windowsの`C:\\...`というパスはMacから使えない。
 | `booth_update_variations` | バリエーション直接更新（在庫・別価格など） |
 | `booth_replace_download` | ZIP差し替え（新アップロード＋旧削除）＝バージョンアップ |
 | `booth_upload_download` / `booth_delete_download` | DLファイル追加 / 削除 |
+| `booth_download_and_verify` | 管理側ファイルを再取得して、期待SHA-256・サイズ・任意のvariation紐付けを確認。検証成功後に新しいローカルファイルへ保存 |
 | `booth_upload_image` / `booth_delete_image` / `booth_reorder_images` | 商品画像 追加 / 削除 / 並べ替え |
+
+再取得の引数は`item_id`、`downloadable_id`、保存先の絶対パス`file_path`、照合元の`expected_sha256`が必須。
+`expected_size`省略時は商品情報の`file_size`を使う。`variation_id`を渡した場合だけ、その紐付けの一致も検証する。
+返却値は`bytes`、`sha256`、`sha256_matched`、`size_matched`、`variation_verified`、`linked_variation_ids`など。
+検証不一致・途中失敗で一時ファイルを削除し、既存の保存先を上書きしない。認証cookieと転送URLは結果へ含めない。
 
 ## cookie自動同期（推奨）
 

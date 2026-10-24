@@ -43,7 +43,7 @@ flowchart LR
   Node's native `fetch` passes Cloudflare's TLS fingerprint gate (Python's httpx/requests get 403).
 - **booth-cookie-sync** keeps the httpOnly session cookie in sync automatically, so you never paste it by hand.
 
-## Tools (16)
+## Tools (17)
 
 | Area | Tools |
 |---|---|
@@ -51,9 +51,18 @@ flowchart LR
 | Paragraphs | `booth_list_paragraphs`, `booth_add_paragraph`, `booth_edit_paragraph`, `booth_delete_paragraph`, `booth_reorder_paragraphs` |
 | Pricing | `booth_set_price`, `booth_update_variations` |
 | Downloads | `booth_replace_download`, `booth_upload_download`, `booth_delete_download` |
+| Download verification | `booth_download_and_verify` |
 | Images | `booth_upload_image`, `booth_delete_image`, `booth_reorder_images` |
 
-Full argument reference: see the Japanese [README.md](README.md#全16ツール-リファレンス).
+Full argument reference: see the Japanese [README.md](README.md#全17ツール-リファレンス).
+
+`booth_download_and_verify` takes `item_id`, `downloadable_id`, a new absolute local
+`file_path`, and `expected_sha256` from your original artifact. It streams the
+managed file, checks size and hash, and only then saves it without overwriting
+an existing file. Optional `variation_id` checks association before and after
+download; `expected_size` otherwise defaults to the item's file size.
+BOOTH products are read only. Session cookies are never forwarded to download
+origins, and signed URLs are omitted from the result.
 
 ## Setup
 

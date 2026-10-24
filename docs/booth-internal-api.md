@@ -18,12 +18,17 @@ BOOTH管理画面（manage.booth.pm）の商品更新を、UI操作なしのHTTP
 | 画像並べ替え | `PATCH https://manage.booth.pm/items/{id}/images/reorder` | body `{"image":{"ids":["<id>",...]}}`（**文字列ID配列**）。実証200。**罠: 現在の並びから「1枚だけ移動した並び」しか適用されない**。複数枚が同時に動く並び（全逆順等）は HTTP 200 のまま黙って無視される（2026-08-16 実測）。任意の並びは1枚移動の列に分解して連続送信する（booth-mcp の `reorderImages` が自動でやる）。ヘッダ（Origin/Referer/X-Requested-With/UA）は無関係 |
 | 価格・在庫更新 | `POST https://manage.booth.pm/items/{id}/variations` | body `{"variations":[{…GETのvariations要素にprice/stock等を反映…}]}`。実証200 |
 
-### ZIP差し替え（バージョンアップ）の手順 ＝ 実証済みレシピ
+### ZIP差し替え（バージョンアップ）の手順
 
-1. `GET /items/{id}` で現在の `downloadables[]` を取得（旧ファイルの `id` を控える）
+1. `GET /items/{id}` で現在の `downloadables[]` と `variations[]` を取得（対象の旧ファイルIDと他製品の紐付けを控える）
 2. `POST /items/{id}/downloadables`（FormData `downloadable[file]` = 新ZIP）→ 新ファイルが追加される
-3. `DELETE /items/{id}/downloadables/{旧id}` で旧ファイルを削除
-4. （必要なら）`PATCH /items/{id}` で説明文のバージョン番号等を更新
+3. `POST /items/{id}/variations` で新ファイルを対象variationの`downloadable_ids`へ紐付ける。他製品のIDと設定を保持する
+4. 管理側のdownloadable `url`をGETして再取得し、原本SHA-256・サイズ・variation紐付けを照合（`booth_download_and_verify`）。cookieはmanage.booth.pmだけへ送り、配信元への転送では付けない
+5. 照合成功後に`DELETE /items/{id}/downloadables/{対象旧id}`で差し替える旧ファイルだけを削除
+6. （必要なら）`PATCH /items/{id}`で説明文のバージョン番号等を更新
+
+2026-10-24のcodex-pets実測で、管理側urlは302でHTTPSの`.booth.pm`配信元へ転送された。
+`booth_replace_download`は従来の全旧DL削除とvariation未更新を含むため、セット商品でこの手順の代わりに使わない。
 
 - アップロードUIは `<input type=file>` を持たず**D&Dゾーンのみ**。ブラウザ自動化するならdropイベント合成が要る。**が、HTTPで直接POSTすれば不要**（MCPサーバーはこちら）。
 - モーダルの「チェックをつけたファイルがユーザーに提供されます」= 提供対象の選択。アップロード直後の新ファイルは提供対象に入る挙動（要最終確認）。

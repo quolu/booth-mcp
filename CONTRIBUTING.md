@@ -27,10 +27,11 @@ cp .env.example .env   # BOOTH_COOKIE と ITEM_ID を記入
 cookieやBOOTHアカウントを使わない試験：
 
 ```sh
-node --test booth-cookie-sync/test/native-host.test.mjs booth-mcp/test/stdio.test.mjs
+node --test booth-cookie-sync/test/native-host.test.mjs booth-mcp/test/stdio.test.mjs booth-mcp/tests/item-state.test.js booth-mcp/tests/download.test.js
 ```
 
-一時フォルダと架空のcookieで、登録・起動・同期・削除・別の配置の保護、MCPの初期接続と16ツールの列挙を確認する。
+一時フォルダと架空のcookieで、登録・起動・同期・削除・別の配置の保護、MCPの初期接続と17ツールの列挙を確認する。
+ダウンロード試験は転送先へのcookie非送信、SHA/サイズ不一致、既存保存先の保持、途中失敗、variation変更の検出も確認する。
 GitHub ActionsでWindows / macOS / Linux、Node 18 / 24を確認する。
 
 受入テストは実サーバーに対して「変更→確認→復元」を行う非破壊テストです。
