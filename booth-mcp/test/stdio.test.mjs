@@ -17,7 +17,7 @@ test('stdio MCP initializes and advertises 17 tools including download verificat
   });
   try {
     await client.connect(transport);
-    assert.deepEqual(client.getServerVersion(), { name: 'booth-mcp', version: '0.4.0' });
+    assert.deepEqual(client.getServerVersion(), { name: 'booth-mcp', version: '0.5.0' });
     const { tools } = await client.listTools();
     assert.equal(tools.length, 17);
     assert.equal(new Set(tools.map(tool => tool.name)).size, 17);
@@ -36,7 +36,7 @@ test('stdio forwards native page_design data and retains legacy text-module inpu
   await writeFile(cookie, 'synthetic-test-cookie', { mode: 0o600 });
   const client = new Client({ name: 'booth-page-design-check', version: '1.0.0' }, { capabilities: {} });
   const transport = new StdioClientTransport({ command: process.execPath,
-    args: ['--import', fileURLToPath(new URL('./mock-item-api.mjs', import.meta.url)),
+    args: ['--import', new URL('./mock-item-api.mjs', import.meta.url).href,
       fileURLToPath(new URL('../src/index.js', import.meta.url))],
     env: { PATH: process.env.PATH, BOOTH_COOKIE_FILE: cookie }, stderr: 'pipe' });
   const parse = response => {

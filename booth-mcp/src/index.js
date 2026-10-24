@@ -311,7 +311,7 @@ const TOOLS = [
 ];
 
 const server = new Server(
-  { name: "booth-mcp", version: "0.4.0" },
+  { name: "booth-mcp", version: "0.5.0" },
   { capabilities: { tools: {} } }
 );
 
@@ -443,4 +443,4 @@ async function dispatch(name, a) {
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
-console.error("booth-mcp v0.4.0 ready");
+console.error("booth-mcp v0.5.0 ready");
