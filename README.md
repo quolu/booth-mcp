@@ -69,6 +69,7 @@ MCPサーバーを登録後、AIエージェントにこう頼むだけ：
 ## セットアップ
 
 必要なもの: Node.js 18+（native fetch）、Chrome、BOOTHのショップアカウント。
+MCP本体はWindowsとmacOSで利用できる。cookie自動同期の導入方法はOSごとに異なる。
 
 ### 1. MCPサーバー
 
@@ -90,13 +91,22 @@ cp .mcp.json.example .mcp.json
 
 ### 3. cookie自動同期（推奨）
 
+Windows：
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File booth-cookie-sync/install.ps1
+```
+
+macOS（リポジトリ直下から）：
+
+```sh
+sh booth-cookie-sync/install.sh
 ```
 
 そのあと `chrome://extensions` から `booth-cookie-sync/extension` を「パッケージ化されていない拡張機能」として読み込み、
 **Chromeを完全に再起動**する。以後ログインし続ける限り、常に有効なcookieで動く。
 詳細は [booth-cookie-sync/README.md](booth-cookie-sync/README.md)。
+Macでは[MacBookでのMCP登録](booth-mcp/README.md#macbookでの登録)も参照。
 
 ## 全16ツール リファレンス
 
