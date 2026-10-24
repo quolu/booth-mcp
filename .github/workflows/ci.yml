@@ -20,4 +20,4 @@ jobs:
         working-directory: booth-mcp
       - run: node --check booth-mcp/src/index.js
       - run: node --check booth-mcp/src/booth.js
-      - run: node --test booth-cookie-sync/test/native-host.test.mjs booth-mcp/test/stdio.test.mjs booth-mcp/tests/item-state.test.js booth-mcp/tests/download.test.js
+      - run: node --test booth-cookie-sync/test/native-host.test.mjs booth-mcp/test/stdio.test.mjs booth-mcp/tests/item-state.test.js booth-mcp/tests/download.test.js booth-mcp/tests/youtube.test.js
