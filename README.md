@@ -108,7 +108,7 @@ sh booth-cookie-sync/install.sh
 詳細は [booth-cookie-sync/README.md](booth-cookie-sync/README.md)。
 Macでは[MacBookでのMCP登録](booth-mcp/README.md#macbookでの登録)も参照。
 
-## 全16ツール リファレンス
+## 全17ツール リファレンス
 
 すべて `item_id`（商品ID）を取る。IDは `booth_list_items` で確認できる。
 
@@ -144,6 +144,15 @@ Macでは[MacBookでのMCP登録](booth-mcp/README.md#macbookでの登録)も参
 | `booth_replace_download` | `item_id`, `file_path`, `filename?`, `delete_old?` | **差し替え（バージョンアップ）**＝新規追加＋旧削除 |
 | `booth_upload_download` | `item_id`, `file_path`, `filename?` | ファイルを1つ追加 |
 | `booth_delete_download` | `item_id`, `downloadable_id` | ファイルを1つ削除 |
+| `booth_download_and_verify` | `item_id`, `downloadable_id`, `file_path`, `expected_sha256`, `expected_size?`, `variation_id?` | 管理側ファイルを再取得しSHA-256・サイズを照合して保存。variation指定時は紐付けも前後で確認 |
+
+再取得はBOOTHの商品を変更しない。`file_path`はMCPを動かしている端末の新しい保存先を絶対パスで渡す。
+`expected_sha256`には配布前の原本などから得たSHA-256を指定する。サイズは指定値と商品情報を照合し、省略時は商品の`file_size`を使う。
+検証失敗時は保存先を作らず、既存ファイルを上書きしない。15分以内に取得できない場合も失敗する。
+`variation_id`を省略した時は紐付くID一覧を返すが、特定バリエーションの一致を確認したとは扱わない。
+
+セット商品では`booth_replace_download`が既定で全旧ファイルを削除するため使用を避ける。
+追加→variationの紐付け→再取得と原本照合→対象の旧IDだけ削除、の順で他製品を保持する。
 
 ### 商品画像
 
