@@ -118,9 +118,14 @@ Macでは[MacBookでのMCP登録](booth-mcp/README.md#macbookでの登録)も参
 |---|---|---|
 | `booth_list_items` | — | 商品一覧（id/名前/状態/価格/URL/画像数/DLファイル） |
 | `booth_get_item` | `item_id` | 商品の全データ取得 |
-| `booth_update_item` | `item_id`, `name?`, `description?`, `page_design_modules?`, `state?`, `tags?`, `category_id?`, `adult?`, `purchase_limit?`, `preorder_enabled?` | 指定フィールドだけ更新 |
+| `booth_update_item` | `item_id`, `name?`, `description?`, `page_design?`, `page_design_modules?`, `state?`, `tags?`, `category_id?`, `adult?`, `purchase_limit?`, `preorder_enabled?` | 指定フィールドだけ更新。page_designはBOOTHの構造をそのまま渡す |
 
 ### 段落本文（商品紹介の「段落」）
+
+`booth_update_item.page_design`にはBOOTHの商品紹介データ全体を、オブジェクトまたはJSON文字列で渡せます。
+mediaのiframe、未知のmodule型や追加キーもそのまま送ります。BOOTHと同じ全文置換なので、保持したい既存データを含めてください。
+従来の`page_design_modules`も使え、type省略時だけtextを補います。両入力は同時に指定しません。
+操作や内容の判断・手順は呼出元AIが持ち、MCPはBOOTHへの変換・通信・結果返却を担います。
 
 | ツール | 引数 | 説明 |
 |---|---|---|

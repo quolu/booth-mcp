@@ -95,5 +95,5 @@ MCPサーバー（純Node）が必要とするもの:
 - セッションcookieの寿命（remember-me有無）
 - 商品一覧のJSON API（現状HTMLスクレイプ）
 
-動画編集の隔離候補と公開前の残条件は[候補設計](youtube-editing-candidate.md)を参照。
+page_designの入力拡張と未確認事項は[設計](page-design-input.md)を参照。
 readbackのfield名/値だけを根拠に、新しい更新endpointやpayloadが実証済みとは扱わない。
