@@ -28,6 +28,7 @@ BOOTH管理画面（manage.booth.pm）の商品更新を、UI操作なしのHTTP
 6. （必要なら）`PATCH /items/{id}`で説明文のバージョン番号等を更新
 
 2026-10-24のcodex-pets実測で、管理側urlは302でHTTPSの`.booth.pm`配信元へ転送された。
+管理側のGETは`Accept: text/html`で送る。`application/octet-stream`を要求するとHTTP406で拒否されることを同日のMac/Windows候補試験で確認した。
 `booth_replace_download`は従来の全旧DL削除とvariation未更新を含むため、セット商品でこの手順の代わりに使わない。
 
 - アップロードUIは `<input type=file>` を持たず**D&Dゾーンのみ**。ブラウザ自動化するならdropイベント合成が要る。**が、HTTPで直接POSTすれば不要**（MCPサーバーはこちら）。

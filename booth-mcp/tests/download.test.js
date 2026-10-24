@@ -25,7 +25,10 @@ test('download follows approved redirects without forwarding cookie and verifies
   const requests = [];
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     requests.push({ url: String(url), options });
-    if (requests.length === 1) return new Response(null, { status: 302, headers: { location: 'https://download.booth.pm/file?signature=synthetic' } });
+    if (requests.length === 1) {
+      if (options.headers.Accept !== 'text/html') return new Response(null, { status: 406 });
+      return new Response(null, { status: 302, headers: { location: 'https://download.booth.pm/file?signature=synthetic' } });
+    }
     if (requests.length === 2) return new Response(null, { status: 307, headers: { location: '/final.zip?signature=synthetic' } });
     return new Response(new ReadableStream({ start(controller) {
       controller.enqueue(f.bytes.subarray(0, 5)); controller.enqueue(f.bytes.subarray(5)); controller.close();

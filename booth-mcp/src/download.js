@@ -44,7 +44,9 @@ async function responseFor(client, initialURL, signal) {
   for (let redirects = 0; redirects <= 5; redirects++) {
     let response;
     // Session credentials belong only to the management origin, never a CDN.
-    const headers = url.origin === MANAGE_ORIGIN ? client._headers({ Accept: 'application/octet-stream' })
+    // The management route negotiates HTML before returning its signed redirect;
+    // asking it for octet-stream returns HTTP 406 (2026-10-24 live verification).
+    const headers = url.origin === MANAGE_ORIGIN ? client._headers({ Accept: 'text/html' })
       : { Accept: 'application/octet-stream' };
     try { response = await fetch(url, { headers, redirect: 'manual', signal }); }
     catch { throw fail('ダウンロード要求に失敗しました。'); }
