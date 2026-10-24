@@ -14,6 +14,7 @@ import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { BoothClient } from "./booth.js";
 import { downloadAndVerify } from "./download.js";
+import { itemUpdateFields } from "./item-update.js";
 
 // パスはすべてこのスクリプトの位置から解決する（絶対パスの設定焼き込みを不要にする）。
 const PKG_DIR = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -68,18 +69,22 @@ const TOOLS = [
         item_id: { type: "number", description: "商品ID" },
         name: { type: "string", description: "商品名" },
         description: { type: "string", description: "商品紹介文（プレーンテキスト、全文置換）" },
+        page_design: {
+          description: "BOOTHのpage_design全体（全文置換）。オブジェクトまたはJSON文字列。moduleの型・未知のキー・mediaのiframe等をそのまま渡す。",
+          anyOf: [{ type: "object", additionalProperties: true }, { type: "string" }],
+        },
         page_design_modules: {
           type: "array",
           description:
-            "段落本文（全置換）。各要素 {title, content}。既存を部分編集する時は booth_get_item で現状を取って加工して渡す",
+            "page_design.modulesの全置換。各moduleのキーを保持し、type省略時だけtextを補う。page_designの他のキーも指定する場合はpage_designを使う。",
           items: {
             type: "object",
             properties: {
+              type: { type: "string", description: "BOOTHのmodule型。省略時はtext（従来互換）" },
               title: { type: "string", description: "見出し" },
               content: { type: "string", description: "本文（改行は\\n）" },
             },
-            required: ["title", "content"],
-            additionalProperties: false,
+            additionalProperties: true,
           },
         },
         state: { type: "string", enum: ["public", "private"], description: "公開状態" },
@@ -306,7 +311,7 @@ const TOOLS = [
 ];
 
 const server = new Server(
-  { name: "booth-mcp", version: "0.4.0" },
+  { name: "booth-mcp", version: "0.5.0" },
   { capabilities: { tools: {} } }
 );
 
@@ -340,22 +345,7 @@ async function dispatch(name, a) {
       return c.getItem(a.item_id);
 
     case "booth_update_item": {
-      const fields = {};
-      if (a.name !== undefined) fields.name = a.name;
-      if (a.description !== undefined) fields.description = a.description;
-      if (a.page_design_modules !== undefined)
-        fields.page_design = {
-          modules: a.page_design_modules.map((m) => ({ type: "text", ...m })),
-        };
-      if (a.state !== undefined) fields.state = a.state;
-      if (a.tags !== undefined) fields.tags_array = a.tags;
-      if (a.category_id !== undefined) fields.category_id = a.category_id;
-      if (a.adult !== undefined) fields.adult = String(a.adult);
-      if (a.purchase_limit !== undefined) fields.purchase_limit = a.purchase_limit;
-      if (a.preorder_enabled !== undefined) fields.preorder_enabled = a.preorder_enabled;
-      if (Object.keys(fields).length === 0) {
-        throw new Error("更新するフィールドが1つも指定されていません。");
-      }
+      const fields = itemUpdateFields(a);
       await c.updateItem(a.item_id, fields);
       return { ok: true, item: summary(await c.getItem(a.item_id)) };
     }
@@ -453,4 +443,4 @@ async function dispatch(name, a) {
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
-console.error("booth-mcp v0.4.0 ready");
+console.error("booth-mcp v0.5.0 ready");

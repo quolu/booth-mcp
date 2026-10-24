@@ -98,7 +98,7 @@ args = ["/absolute/path/to/booth-mcp/booth-mcp/src/index.js"]
 |---|---|
 | `booth_list_items` | 商品一覧（id/名前/状態/価格/URL/画像数/DLファイル） |
 | `booth_get_item` | 商品の全データ取得 |
-| `booth_update_item` | 商品名/説明文/段落本文/公開状態/タグ/カテゴリ/R18/購入制限/予約販売を更新 |
+| `booth_update_item` | 商品名/説明文/BOOTH形式のpage_design/公開状態/タグ/カテゴリ/R18/購入制限/予約販売を更新。mediaや未知のmoduleも転送 |
 | `booth_list_paragraphs` | 商品紹介の段落をindex付きで一覧 |
 | `booth_add_paragraph` | 段落（見出し＋本文）を追加（既存は種類問わず保持） |
 | `booth_edit_paragraph` / `booth_delete_paragraph` / `booth_reorder_paragraphs` | 段落の編集 / 削除 / 並べ替え |

@@ -89,7 +89,11 @@ MCPサーバー（純Node）が必要とするもの:
 
 ## 未調査
 
-- 商品画像（サムネ）アップロードのエンドポイント（`POST /items/{id}/images` ？ 要確認）
 - 商品新規作成（`POST /items` ？）
+- 代理購入設定のUI送信payload（readbackの`accept_proxy_shipping=unselected/refused`は2026-10-24報告、更新の可否/全enumは未確認）
+- 動画編集のUI送信payloadと保存時正規化（readbackの`page_design.modules`に`media`/iframeは同日報告、実書込み未検証）
 - セッションcookieの寿命（remember-me有無）
 - 商品一覧のJSON API（現状HTMLスクレイプ）
+
+page_designの入力拡張と未確認事項は[設計](page-design-input.md)を参照。
+readbackのfield名/値だけを根拠に、新しい更新endpointやpayloadが実証済みとは扱わない。
