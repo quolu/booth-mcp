@@ -3,12 +3,14 @@
   "version": "0.3.0",
   "description": "BOOTH (manage.booth.pm) 商品管理を叩くローカルMCPサーバー",
   "type": "module",
-  "bin": { "booth-mcp": "src/index.js" },
+  "bin": {
+    "booth-mcp": "src/index.js"
+  },
   "scripts": {
     "start": "node src/index.js",
     "probe": "node src/probe.js"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0"
+    "@modelcontextprotocol/sdk": "^1.32.2"
   }
 }

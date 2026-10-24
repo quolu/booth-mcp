@@ -1,7 +1,7 @@
 // ネイティブメッセージングホスト: 拡張から {cookie} を受け取り booth-mcp/.env の BOOTH_COOKIE を更新する。
 // Chromeとの通信は「4バイトのリトルエンディアン長プレフィックス + UTF-8 JSON」。
 
-import { readFileSync, writeFileSync, existsSync, appendFileSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, appendFileSync, chmodSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -35,7 +35,8 @@ function updateEnv(cookie) {
   if (!found) lines.unshift(`BOOTH_COOKIE=${cookie}`);
   // 末尾空行の整理
   while (lines.length && lines[lines.length - 1] === "") lines.pop();
-  writeFileSync(ENV_PATH, lines.join("\n") + "\n", "utf8");
+  writeFileSync(ENV_PATH, lines.join("\n") + "\n", { encoding: "utf8", mode: 0o600 });
+  if (process.platform !== "win32") chmodSync(ENV_PATH, 0o600);
 }
 
 function send(obj) {
@@ -57,7 +58,8 @@ process.stdin.on("data", (chunk) => {
     try {
       if (!msg.cookie) throw new Error("cookie empty");
       updateEnv(msg.cookie);
-      writeFileSync(COOKIE_PATH, msg.cookie, "utf8");
+      writeFileSync(COOKIE_PATH, msg.cookie, { encoding: "utf8", mode: 0o600 });
+      if (process.platform !== "win32") chmodSync(COOKIE_PATH, 0o600);
       log(`OK reason=${msg.reason} len=${msg.cookie.length} -> ${COOKIE_PATH}`);
       send({ ok: true, wrote: [ENV_PATH, COOKIE_PATH], length: msg.cookie.length });
     } catch (e) {

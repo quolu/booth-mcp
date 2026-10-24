@@ -10,6 +10,7 @@ booth-mcp/.cookie
 # 端末固有の設定（絶対パスを含む）。雛形は *.example / *.template を参照
 .mcp.json
 booth-cookie-sync/host/com.quolabo.booth_cookie_sync.json
+booth-cookie-sync/host/run-host.sh
 
 # ログ
 *.log

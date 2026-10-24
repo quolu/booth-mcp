@@ -2,6 +2,16 @@
 
 # booth-mcp
 
+macOS / MacBook support: after installing the MCP package, run
+`sh booth-cookie-sync/install.sh` from the repository root, then load
+`booth-cookie-sync/extension` in Chrome at `chrome://extensions`.
+The installer registers the native host for the current user and records the
+absolute Node path so Chrome can launch it without your terminal's PATH.
+Run `sh booth-cookie-sync/install.sh --uninstall` to remove this registration;
+cookie files are preserved. Windows continues to use `install.ps1`.
+See the [macOS setup guide](booth-cookie-sync/README.md#macbookのセットアップchrome)
+and [MCP client configuration](booth-mcp/README.md#macbookでの登録).
+
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/Node-18%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org)
 [![MCP](https://img.shields.io/badge/MCP-server-blueviolet)](https://modelcontextprotocol.io)

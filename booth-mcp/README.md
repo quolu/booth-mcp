@@ -32,10 +32,11 @@ cookieはログイン切れで無効になる。その時は取り直す（自�
 
 ### cookieの解決順
 
-1. 環境変数 `BOOTH_COOKIE_FILE` が指すファイル
-2. 環境変数 `BOOTH_COOKIE`
-3. `booth-mcp/.cookie`（拡張が自動更新）
-4. `booth-mcp/.env` の `BOOTH_COOKIE=` 行
+1. 環境変数 `BOOTH_COOKIE_FILE` が指すファイル（未指定なら`booth-mcp/.cookie`）
+2. 環境変数 `BOOTH_COOKIE`（上のファイルが無いか空の場合）
+3. `booth-mcp/.env` の `BOOTH_COOKIE=` 行
+
+`BOOTH_COOKIE_FILE`を指定した場合、既定の`.cookie`は使わない。
 
 ## 受入テスト（非破壊）
 
@@ -63,6 +64,19 @@ Claude Code の場合、リポジトリ直下に `.mcp.json` を置く（`.mcp.j
 cookieは上記の解決順で自動的に読まれるので、設定への書き込みは不要。
 別の場所から起動する場合は `args` を絶対パスにする。
 
+### MacBookでの登録
+
+[cookie同期のMac手順](../booth-cookie-sync/README.md#macbookのセットアップchrome)を済ませ、
+リポジトリ直下で次を実行すると、このMacのNodeとMCP本体の絶対パスを使う設定を表示できる：
+
+```sh
+node --input-type=module -e 'import {resolve} from "node:path"; console.log(JSON.stringify({mcpServers:{booth:{command:process.execPath,args:[resolve("booth-mcp/src/index.js")]}}},null,2))'
+```
+
+表示結果の`booth`設定を利用中のMCPクライアントへ登録する。cookieは設定へ書かない。
+ファイルのアップロードには、このMacから読めるローカルパスを渡す。
+Windowsの`C:\\...`というパスはMacから使えない。
+
 ## ツール（全16種）
 
 | ツール | 用途 |
@@ -83,7 +97,7 @@ cookieは上記の解決順で自動的に読まれるので、設定への書�
 
 手貼りの代わりに、`../booth-cookie-sync`（Chrome拡張＋ネイティブホスト）を入れると
 cookieが自動で `.cookie` に同期され、booth-mcpは毎回それを読み直す（**再起動不要・手貼り不要**）。
-`.mcp.json` は既に `BOOTH_COOKIE_FILE=.cookie`（最優先）＋ `.env`（フォールバック）の両対応。
+サーバーは実行ファイルの位置を基準に`.cookie`と`.env`を読み込む。作業ディレクトリに依存しない。
 
 ## 対応できないこと（実測で確認）
 
