@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { copyFile, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, realpath, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -12,7 +12,7 @@ const HOST = 'com.quolabo.booth_cookie_sync';
 const COOKIE = '_plaza_session_test=synthetic-cookie';
 
 async function fixture(t) {
-  const temporary = await mkdtemp(join(tmpdir(), 'booth-sync-'));
+  const temporary = await realpath(await mkdtemp(join(tmpdir(), 'booth-sync-')));
   t.after(() => rm(temporary, { recursive: true, force: true }));
   const repo = join(temporary, "Mac user's 日本語 repo");
   const syncDir = join(repo, 'booth-cookie-sync');
