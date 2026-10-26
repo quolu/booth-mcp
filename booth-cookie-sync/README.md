@@ -40,6 +40,10 @@ sh booth-cookie-sync/install.sh
 管理者権限は不要。登録先は
 `~/Library/Application Support/Google/Chrome/NativeMessagingHosts/com.quolabo.booth_cookie_sync.json`。
 インストール時のNodeの絶対パスを、生成する`host/run-host.sh`へ保存する。
+Homebrewでは版番号を含まない`/opt/homebrew/opt/node/bin/node`などの入口を使い、
+その実体が設置処理を実行中のNodeと一致することを、書き込む前に確認する。
+これにより、Homebrewの更新・旧版cleanup後も再登録なしで新しいNodeを使える。
+入口が存在しないか実体が異なる場合は、既存の登録を変更せずに停止する。
 ChromeをDockから開いた場合も、ターミナルのPATH設定に頼らず起動できる。
 Nodeやリポジトリを移動した時は再登録する。別の配置が登録済みなら、元の配置で先にアンインストールする。
 
@@ -84,5 +88,5 @@ sh booth-cookie-sync/install.sh --uninstall
 
 ## 注意
 
-- Windowsでは`node`がPATHにある前提（Chromeが`run-host.bat`から起動する）。macOSは登録時にNodeの絶対パスを保存する。
+- Windowsでは`node`がPATHにある前提（Chromeが`run-host.bat`から起動する）。macOSは登録時にNodeの絶対パスを保存し、Homebrewでは版に依らない`opt`の入口を使う。
 - cookieは機密。`.env` / `.cookie` はgitignore済み。`host/sync.log` にcookie値は書かない（長さのみ）。

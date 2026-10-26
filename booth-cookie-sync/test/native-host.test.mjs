@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import { copyFile, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, realpath, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { installMac } from '../install-macos.mjs';
@@ -12,7 +12,7 @@ const HOST = 'com.quolabo.booth_cookie_sync';
 const COOKIE = '_plaza_session_test=synthetic-cookie';
 
 async function fixture(t) {
-  const temporary = await mkdtemp(join(tmpdir(), 'booth-sync-'));
+  const temporary = await realpath(await mkdtemp(join(tmpdir(), 'booth-sync-')));
   t.after(() => rm(temporary, { recursive: true, force: true }));
   const repo = join(temporary, "Mac user's 日本語 repo");
   const syncDir = join(repo, 'booth-cookie-sync');
@@ -88,4 +88,56 @@ test('install and uninstall preserve another installation', async t => {
   await assert.rejects(installMac(f), /Another installation owns/);
   await assert.rejects(installMac({ ...f, uninstall: true }), /Another installation owns/);
   assert.deepEqual(JSON.parse(await readFile(result.manifestPath, 'utf8')), other);
+});
+
+test('Homebrew registration survives an upgrade and cleanup without reinstalling', { skip: process.platform === 'win32' }, async t => {
+  for (const formula of ['node', 'node@24']) {
+    const f = await fixture(t);
+    const prefix = join(f.homeDir, 'Homebrew');
+    const oldKeg = join(prefix, 'Cellar', formula, '1.0');
+    const newKeg = join(prefix, 'Cellar', formula, '1.1_1');
+    const opt = join(prefix, 'opt', formula);
+    for (const keg of [oldKeg, newKeg]) {
+      await mkdir(join(keg, 'bin'), { recursive: true });
+      await copyFile(process.execPath, join(keg, 'bin', 'node'));
+    }
+    await mkdir(dirname(opt), { recursive: true });
+    await symlink(oldKeg, opt);
+    const installer = pathToFileURL(join(sourceDir, 'install-macos.mjs')).href;
+    const result = spawnSync(join(oldKeg, 'bin', 'node'), ['--input-type=module', '-e',
+      `import { installMac } from ${JSON.stringify(installer)}; console.log(JSON.stringify(await installMac(${JSON.stringify(f)})));`,
+    ], { encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+    const installed = JSON.parse(result.stdout);
+    assert.equal(installed.nodePath, join(opt, 'bin', 'node'));
+    const launcher = await readFile(installed.launcher, 'utf8');
+    assert.doesNotMatch(launcher, /\/Cellar\//);
+    const registration = await readFile(installed.manifestPath, 'utf8');
+    await rm(opt);
+    await symlink(newKeg, opt);
+    await rm(oldKeg, { recursive: true });
+    const manifest = JSON.parse(registration);
+    assert.equal(response(spawnSync(manifest.path, [], {
+      input: request(), env: { PATH: '/usr/bin:/bin' }, cwd: tmpdir(),
+    })).ok, true);
+    assert.equal(await readFile(installed.launcher, 'utf8'), launcher);
+    assert.equal(await readFile(installed.manifestPath, 'utf8'), registration);
+    assert.equal(await readFile(join(f.packageDir, '.cookie'), 'utf8'), COOKIE);
+  }
+});
+
+test('missing or mismatched Node leaves the launcher and registration unchanged', async t => {
+  const f = await fixture(t);
+  const installed = await installMac(f);
+  const launcher = await readFile(installed.launcher);
+  const manifest = await readFile(installed.manifestPath);
+  const otherNode = join(f.hostDir, 'other-node');
+  await copyFile(process.execPath, otherNode);
+  await assert.rejects(installMac({ ...f, nodePath: otherNode }), /does not resolve to the installing Node/);
+  await assert.rejects(installMac({ ...f, nodePath: join(f.hostDir, 'missing-node') }), { code: 'ENOENT' });
+  assert.deepEqual(await readFile(installed.launcher), launcher);
+  assert.deepEqual(await readFile(installed.manifestPath), manifest);
+  // Uninstall must remain possible even if the selected Node has disappeared.
+  await installMac({ ...f, nodePath: join(f.hostDir, 'missing-node'), uninstall: true });
+  await assert.rejects(stat(installed.manifestPath), { code: 'ENOENT' });
 });
