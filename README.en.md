@@ -7,6 +7,8 @@ macOS / MacBook support: after installing the MCP package, run
 `booth-cookie-sync/extension` in Chrome at `chrome://extensions`.
 The installer registers the native host for the current user and records the
 absolute Node path so Chrome can launch it without your terminal's PATH.
+For Homebrew, it records the version-independent `opt` path after checking that
+it resolves to the installing Node, so upgrades and old-keg cleanup keep working.
 Run `sh booth-cookie-sync/install.sh --uninstall` to remove this registration;
 cookie files are preserved. Windows continues to use `install.ps1`.
 See the [macOS setup guide](booth-cookie-sync/README.md#macbookのセットアップchrome)

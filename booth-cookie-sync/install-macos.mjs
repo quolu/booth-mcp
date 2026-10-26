@@ -1,4 +1,5 @@
-import { chmod, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { constants } from 'node:fs';
+import { access, chmod, mkdir, readFile, realpath, rename, rm, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -30,6 +31,12 @@ export async function installMac({ homeDir = homedir(), syncDir = SYNC_DIR, node
     if (previous) await rm(manifestPath);
     await rm(launcher, { force: true });
     return { manifestPath, removed: Boolean(previous) };
+  }
+  // Homebrew's opt link survives upgrades and cleanup of the previous keg.
+  nodePath = nodePath.replace(/\/Cellar\/([^/]+)\/[^/]+\/bin\/node$/, '/opt/$1/bin/node');
+  await access(nodePath, constants.X_OK);
+  if (await realpath(nodePath) !== await realpath(process.execPath)) {
+    throw new Error(`Node launcher does not resolve to the installing Node: ${nodePath}`);
   }
   await readFile(hostScript); // Check the installation before writing any registration.
   const template = JSON.parse(await readFile(join(syncDir, 'host', `${HOST_NAME}.json.template`), 'utf8'));
