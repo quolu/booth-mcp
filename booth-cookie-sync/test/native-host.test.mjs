@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { copyFile, link, mkdir, mkdtemp, readFile, realpath, rm, stat, symlink, writeFile } from 'node:fs/promises';
+import { copyFile, link, mkdir, mkdtemp, readFile, readdir, realpath, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -156,6 +156,14 @@ test('Homebrew registration survives an upgrade and cleanup without reinstalling
     for (const keg of [oldKeg, newKeg]) {
       await mkdir(join(keg, 'bin'), { recursive: true });
       await copyFile(process.execPath, join(keg, 'bin', 'node'));
+      if (process.platform === 'darwin') {
+        const libraries = join(dirname(process.execPath), '..', 'lib');
+        for (const name of await readdir(libraries)) {
+          if (!/^libnode\..*\.dylib$/.test(name)) continue;
+          await mkdir(join(keg, 'lib'), { recursive: true });
+          await symlink(join(libraries, name), join(keg, 'lib', name));
+        }
+      }
     }
     await mkdir(dirname(opt), { recursive: true });
     await symlink(oldKeg, opt);

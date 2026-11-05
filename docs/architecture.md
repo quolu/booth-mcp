@@ -48,4 +48,6 @@ P3自身のprocess内で公開後のunlinkに失敗したpathは、小さいSet�
 
 変更の接点はhost.jsとそのnative fixture、download.jsとその局所試験、0.5.1のpackage/lock/index表示とstdio版fixture、公開README/CIの同試験。依存追加や17道具の入力schema変更はない。P6の試験がP3/P4の反例を通し、通常配布先でも同じ入口を架空cookie/ZIPで確認する。
 
+P6のHomebrew更新fixtureは、2つの架空kegへNode実行fileをコピーしてold keg撤去後のlauncherを確認する。共有libnodeを使うmacOS Nodeでは、その隣接libnode.dylibを架空kegから元runtimeへsymlink参照し、大きいlibraryの重複コピーを作らない。借用runtimeは書換/削除しない。fixtureのt.after回収は専有tempとsymlink自体だけを削除する。製品installerの入力/出力契約は変えない。
+
 Mac installerのpid.tmpは正常/例外時に回収済み。強制終了後の既tmpはowner状態不明なので一括削除しない。今回source/lockを配布する過程で一時backupを増やさず、現用/唯一復旧元は保護する。コード変更前に図不足の指導をレヴィアタンへ依頼し、設計変更時も本節を先に直す。
