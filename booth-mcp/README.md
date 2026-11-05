@@ -114,6 +114,12 @@ args = ["/absolute/path/to/booth-mcp/booth-mcp/src/index.js"]
 返却値は`bytes`、`sha256`、`sha256_matched`、`size_matched`、`variation_verified`、`linked_variation_ids`など。
 検証不一致・途中失敗で一時ファイルを削除し、既存の保存先を上書きしない。認証cookieと転送URLは結果へ含めない。
 
+強制終了で残った専有partは、同じ端末の書込processが終了したと確認できる場合、次の通常downloadで回収する。
+稼働中・所有不明のpartと完成ZIPは削除しない。完成ZIPの公開後にpart削除だけが失敗した場合は、検証成功の結果に`cleanup_pending: true`と`cleanup_error`を添え、次回回収する。
+hardlink非対応の保存先では排他的copyへ切り替えるため、強制終了で最終pathが部分的に残る可能性がある。既存pathを自動削除・上書きしない。
+
+機能構造・保存先の所有・データフローは[architecture.md](../docs/architecture.md)を参照。
+
 ## cookie自動同期（推奨）
 
 手貼りの代わりに、`../booth-cookie-sync`（Chrome拡張＋ネイティブホスト）を入れると

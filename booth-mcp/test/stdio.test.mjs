@@ -17,7 +17,7 @@ test('stdio MCP initializes and advertises 17 tools including download verificat
   });
   try {
     await client.connect(transport);
-    assert.deepEqual(client.getServerVersion(), { name: 'booth-mcp', version: '0.5.0' });
+    assert.deepEqual(client.getServerVersion(), { name: 'booth-mcp', version: '0.5.1' });
     const { tools } = await client.listTools();
     assert.equal(tools.length, 17);
     assert.equal(new Set(tools.map(tool => tool.name)).size, 17);

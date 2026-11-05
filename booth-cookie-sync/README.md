@@ -90,3 +90,4 @@ sh booth-cookie-sync/install.sh --uninstall
 
 - Windowsでは`node`がPATHにある前提（Chromeが`run-host.bat`から起動する）。macOSは登録時にNodeの絶対パスを保存し、Homebrewでは版に依らない`opt`の入口を使う。
 - cookieは機密。`.env` / `.cookie` はgitignore済み。`host/sync.log` にcookie値は書かない（長さのみ）。
+- `host/sync.log`は1MiBを上限に、超過時は末尾128KiBの診断行を保持する。世代コピーを増やさず通常同期の中で回収する。同時同期時の診断行はbest effortで、Cookie保存結果はnative応答で確認する。

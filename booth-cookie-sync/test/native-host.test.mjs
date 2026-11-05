@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import { copyFile, mkdir, mkdtemp, readFile, realpath, rm, stat, symlink, writeFile } from 'node:fs/promises';
+import { copyFile, link, mkdir, mkdtemp, readFile, readdir, realpath, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { installMac } from '../install-macos.mjs';
 
@@ -58,6 +58,62 @@ test('native host runs as an ES module and preserves other environment settings'
   await checkCookieFiles(f);
 });
 
+test('native diagnostics reclaim old bytes while preserving the latest lines and protocol', async t => {
+  const f = await fixture(t);
+  await writeFile(join(f.packageDir, '.env'), 'ITEM_ID=keep-me\n');
+  const log = join(f.hostDir, 'sync.log');
+  await writeFile(log, 'old diagnostic\n'.repeat(90000) + 'recent diagnostic\n');
+  const body = Buffer.from(JSON.stringify({ cookie: COOKIE, reason: COOKIE.repeat(1000) }));
+  const length = Buffer.alloc(4);
+  length.writeUInt32LE(body.length);
+  assert.equal(response(spawnSync(process.execPath, [join(f.hostDir, 'host.js')], {
+    input: Buffer.concat([length, body]),
+  })).ok, true);
+  const text = await readFile(log, 'utf8');
+  assert.ok((await stat(log)).size <= 1024 * 1024);
+  assert.match(text, /recent diagnostic/);
+  assert.match(text, /OK reason=unknown/);
+  await checkCookieFiles(f);
+});
+
+test('parallel diagnostic writers stay within the byte cap and do not change cookies', async t => {
+  const f = await fixture(t);
+  const log = join(f.hostDir, 'sync.log');
+  await writeFile(log, 'old diagnostic\n'.repeat(90000));
+  await writeFile(join(f.packageDir, '.env'), 'ITEM_ID=keep-me\n');
+  await writeFile(join(f.packageDir, '.cookie'), COOKIE);
+  await Promise.all(Array.from({ length: 12 }, () => new Promise((resolve, reject) => {
+    const child = spawn(process.execPath, [join(f.hostDir, 'host.js')]);
+    const stdout = [];
+    const stderr = [];
+    child.stdout.on('data', data => stdout.push(data));
+    child.stderr.on('data', data => stderr.push(data));
+    child.on('error', reject);
+    child.on('close', status => {
+      try {
+        assert.equal(response({ status, stdout: Buffer.concat(stdout), stderr: Buffer.concat(stderr) }).ok, false);
+        resolve();
+      } catch (error) { reject(error); }
+    });
+    child.stdin.end(request(''));
+  })));
+  assert.ok((await stat(log)).size <= 1024 * 1024);
+  assert.equal(await readFile(join(f.packageDir, '.env'), 'utf8'), 'ITEM_ID=keep-me\n');
+  assert.equal(await readFile(join(f.packageDir, '.cookie'), 'utf8'), COOKIE);
+});
+
+test('diagnostic rotation never truncates a shared hardlinked file', async t => {
+  const f = await fixture(t);
+  await writeFile(join(f.packageDir, '.env'), 'ITEM_ID=keep-me\n');
+  const shared = join(f.hostDir, 'keep.txt');
+  const bytes = Buffer.alloc(2 * 1024 * 1024, 'x');
+  await writeFile(shared, bytes);
+  await link(shared, join(f.hostDir, 'sync.log'));
+  assert.equal(response(spawnSync(process.execPath, [join(f.hostDir, 'host.js')], { input: request() })).ok, true);
+  assert.deepEqual(await readFile(shared), bytes);
+  await checkCookieFiles(f);
+});
+
 test('macOS registration handles spaces, quotes, a minimal PATH and reinstall/uninstall', { skip: process.platform === 'win32' }, async t => {
   const f = await fixture(t);
   await writeFile(join(f.packageDir, '.env'), 'ITEM_ID=keep-me\n');
@@ -100,6 +156,14 @@ test('Homebrew registration survives an upgrade and cleanup without reinstalling
     for (const keg of [oldKeg, newKeg]) {
       await mkdir(join(keg, 'bin'), { recursive: true });
       await copyFile(process.execPath, join(keg, 'bin', 'node'));
+      if (process.platform === 'darwin') {
+        const libraries = join(dirname(process.execPath), '..', 'lib');
+        for (const name of await readdir(libraries)) {
+          if (!/^libnode\..*\.dylib$/.test(name)) continue;
+          await mkdir(join(keg, 'lib'), { recursive: true });
+          await symlink(join(libraries, name), join(keg, 'lib', name));
+        }
+      }
     }
     await mkdir(dirname(opt), { recursive: true });
     await symlink(oldKeg, opt);

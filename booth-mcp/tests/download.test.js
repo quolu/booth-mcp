@@ -1,9 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
-import { mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { createHash, randomUUID } from 'node:crypto';
+import fs, { link, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { hostname, tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { spawn, spawnSync } from 'node:child_process';
+import { once } from 'node:events';
+import { syncBuiltinESMExports } from 'node:module';
 import { downloadAndVerify } from '../src/download.js';
 
 async function fixture(t) {
@@ -135,4 +138,109 @@ test('missing expected hash is rejected; an omitted variation is not marked veri
   const result = await downloadAndVerify(f.client, 1, 2, f.path, { expectedSha256: f.options.expectedSha256 });
   assert.equal(result.variation_verified, null);
   assert.deepEqual(result.linked_variation_ids, [3]);
+});
+
+test('the next download reclaims only stopped local writers and keeps published data', async t => {
+  const f = await fixture(t);
+  const previous = spawnSync(process.execPath, ['-e', '']);
+  assert.equal(previous.status, 0);
+  assert.throws(() => process.kill(previous.pid, 0), { code: 'ESRCH' });
+  const prefix = `.booth-download-${createHash('sha256').update(hostname()).digest('hex').slice(0, 16)}-`;
+  const stopped = join(f.dir, `${prefix}${previous.pid}-${randomUUID()}.part`);
+  const live = `${prefix}${process.pid}-${randomUUID()}.part`;
+  const unknown = `.booth-download-${randomUUID()}.part`;
+  const published = join(f.dir, 'already-verified.zip');
+  await writeFile(published, f.bytes);
+  await link(published, stopped);
+  await writeFile(join(f.dir, live), 'active writer');
+  await writeFile(join(f.dir, unknown), 'unknown owner');
+  t.mock.method(globalThis, 'fetch', async () => new Response(f.bytes));
+  assert.equal((await downloadAndVerify(f.client, 1, 2, f.path, f.options)).sha256_matched, true);
+  await assert.rejects(stat(stopped), { code: 'ENOENT' });
+  assert.deepEqual(await readFile(published), f.bytes);
+  assert.equal(await readFile(join(f.dir, live), 'utf8'), 'active writer');
+  assert.equal(await readFile(join(f.dir, unknown), 'utf8'), 'unknown owner');
+});
+
+test('published data remains successful when part cleanup fails, and the next call retries cleanup', async t => {
+  const f = await fixture(t);
+  t.mock.method(globalThis, 'fetch', async () => new Response(f.bytes));
+  const original = fs.unlink;
+  const mocked = t.mock.method(fs, 'unlink', async () => { throw Object.assign(Error('cannot unlink'), { code: 'EACCES' }); });
+  syncBuiltinESMExports();
+  let result;
+  try { result = await downloadAndVerify(f.client, 1, 2, f.path, f.options); }
+  finally { mocked.mock.restore(); syncBuiltinESMExports(); }
+  assert.equal(fs.unlink, original);
+  assert.equal(result.sha256_matched, true);
+  assert.equal(result.cleanup_pending, true);
+  assert.equal(result.cleanup_error, 'EACCES');
+  assert.deepEqual(await readFile(f.path), f.bytes);
+  assert.equal((await readdir(f.dir)).filter(name => name.endsWith('.part')).length, 1);
+  await downloadAndVerify(f.client, 1, 2, join(f.dir, 'second.zip'), f.options);
+  assert.equal((await readdir(f.dir)).filter(name => name.endsWith('.part')).length, 0);
+  assert.deepEqual(await readFile(f.path), f.bytes);
+});
+
+test('a stopped part that cannot be removed does not prevent a new verified download', async t => {
+  const f = await fixture(t);
+  const dead = spawnSync(process.execPath, ['-e', '']);
+  const prefix = `.booth-download-${createHash('sha256').update(hostname()).digest('hex').slice(0, 16)}-`;
+  const orphan = join(f.dir, `${prefix}${dead.pid}-${randomUUID()}.part`);
+  await writeFile(orphan, 'incomplete');
+  t.mock.method(globalThis, 'fetch', async () => new Response(f.bytes));
+  const original = fs.unlink;
+  const mocked = t.mock.method(fs, 'unlink', async path => {
+    if (path === orphan) throw Object.assign(Error('busy'), { code: 'EACCES' });
+    return original(path);
+  });
+  syncBuiltinESMExports();
+  let result;
+  try { result = await downloadAndVerify(f.client, 1, 2, f.path, f.options); }
+  finally { mocked.mock.restore(); syncBuiltinESMExports(); }
+  assert.equal(result.sha256_matched, true);
+  assert.equal(result.cleanup_pending, true);
+  assert.equal(result.cleanup_error, 'EACCES');
+  assert.deepEqual(await readFile(f.path), f.bytes);
+  assert.equal(await readFile(orphan, 'utf8'), 'incomplete');
+});
+
+test('a forced interruption is reclaimed by the next ordinary download', { timeout: 10000 }, async t => {
+  const f = await fixture(t);
+  const moduleURL = new URL('../src/download.js', import.meta.url).href;
+  const script = `
+    import { downloadAndVerify } from ${JSON.stringify(moduleURL)};
+    import { readdir, stat } from 'node:fs/promises';
+    import { join } from 'node:path';
+    globalThis.fetch = async () => new Response(new ReadableStream({
+      start(controller) { controller.enqueue(new Uint8Array([1])); }
+    }));
+    const directory = ${JSON.stringify(f.dir)};
+    const timer = setInterval(async () => {
+      for (const name of await readdir(directory)) {
+        if (name.endsWith('.part') && (await stat(join(directory, name))).size > 0) {
+          process.stdout.write('ready');
+          clearInterval(timer);
+          setInterval(() => {}, 1000);
+          return;
+        }
+      }
+    }, 20);
+    await downloadAndVerify({ getItem: async () => (${JSON.stringify(f.item)}), _headers: () => ({}) },
+      1, 2, ${JSON.stringify(f.path)}, ${JSON.stringify(f.options)});
+  `;
+  const child = spawn(process.execPath, ['--input-type=module', '-e', script], { stdio: ['ignore', 'pipe', 'pipe'] });
+  t.after(() => { if (child.exitCode === null) child.kill('SIGKILL'); });
+  await Promise.race([
+    once(child.stdout, 'data'),
+    once(child, 'exit').then(([code]) => { throw Error(`fixture exited before writing a part: ${code}`); }),
+  ]);
+  const exited = once(child, 'exit');
+  child.kill('SIGKILL');
+  await exited;
+  assert.equal((await readdir(f.dir)).filter(name => name.endsWith('.part')).length, 1);
+  t.mock.method(globalThis, 'fetch', async () => new Response(f.bytes));
+  await downloadAndVerify(f.client, 1, 2, f.path, f.options);
+  assert.deepEqual(await readdir(f.dir), ["user's 日本語.zip"]);
+  assert.deepEqual(await readFile(f.path), f.bytes);
 });

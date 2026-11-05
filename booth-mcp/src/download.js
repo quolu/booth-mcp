@@ -1,7 +1,8 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { constants } from 'node:fs';
-import { copyFile, link, lstat, open, unlink } from 'node:fs/promises';
+import { copyFile, link, lstat, open, readdir, unlink } from 'node:fs/promises';
 import { dirname, isAbsolute, join } from 'node:path';
+import { hostname } from 'node:os';
 import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 
@@ -10,6 +11,37 @@ const REDIRECTS = new Set([301, 302, 303, 307, 308]);
 class DownloadError extends Error {}
 const fail = message => new DownloadError(message);
 const validSize = size => Number.isSafeInteger(size) && size >= 0;
+const partPrefix = `.booth-download-${createHash('sha256').update(hostname()).digest('hex').slice(0, 16)}-`;
+const pendingCleanup = new Set();
+
+async function removeStoppedDownloads(directory) {
+  let names;
+  try { names = await readdir(directory); }
+  catch (error) { return error.code ?? 'UNKNOWN'; }
+  let cleanupError;
+  for (const name of names) {
+    if (!name.startsWith(partPrefix)) continue;
+    const owner = name.slice(partPrefix.length).match(/^([1-9]\d*)-[a-f\d]{8}-[a-f\d]{4}-4[a-f\d]{3}-[89ab][a-f\d]{3}-[a-f\d]{12}\.part$/);
+    if (!owner || !Number.isSafeInteger(Number(owner[1]))) continue;
+    const path = join(directory, name);
+    if (!pendingCleanup.has(path)) {
+      try {
+        process.kill(Number(owner[1]), 0);
+        continue;
+      } catch (error) {
+        if (error.code !== 'ESRCH') continue;
+      }
+    }
+    try {
+      if ((await lstat(path)).isFile()) await unlink(path);
+      pendingCleanup.delete(path);
+    } catch (error) {
+      if (error.code === 'ENOENT') pendingCleanup.delete(path);
+      else cleanupError ??= error.code ?? 'UNKNOWN';
+    }
+  }
+  return cleanupError;
+}
 
 function positiveId(value, name) {
   if (!Number.isSafeInteger(value) || value <= 0) throw fail(`${name}は正の整数で指定してください。`);
@@ -88,11 +120,13 @@ export async function downloadAndVerify(client, itemId, downloadableId, filePath
   if (validSize(before.file.file_size) && before.file.file_size !== size) throw fail('期待サイズと商品のサイズ情報が一致しません。');
   if (typeof before.file.url !== 'string' || !before.file.url) throw fail('商品のダウンロードURLがありません。');
 
-  const temporary = join(dirname(filePath), `.booth-download-${randomUUID()}.part`);
+  const cleanupError = await removeStoppedDownloads(dirname(filePath));
+  const temporary = join(dirname(filePath), `${partPrefix}${process.pid}-${randomUUID()}.part`);
   let handle;
   let created = false;
   let bytes = 0;
   const hash = createHash('sha256');
+  let result;
   try {
     handle = await open(temporary, 'wx', 0o600);
     created = true;
@@ -123,12 +157,22 @@ export async function downloadAndVerify(client, itemId, downloadableId, filePath
       if (!['ENOTSUP', 'EOPNOTSUPP', 'EPERM', 'EXDEV'].includes(error.code)) throw error;
       await copyFile(temporary, filePath, constants.COPYFILE_EXCL);
     }
-    return { item_id: itemId, downloadable_id: downloadableId, filename: after.file.name ?? null,
+    result = { item_id: itemId, downloadable_id: downloadableId, filename: after.file.name ?? null,
       saved_path: filePath, bytes, sha256, sha256_matched: true, size_matched: true,
       variation_id: variationId ?? null, variation_verified: variationId === undefined ? null : true,
-      linked_variation_ids: after.linkedVariationIds };
+      linked_variation_ids: after.linkedVariationIds,
+      ...(cleanupError && { cleanup_pending: true, cleanup_error: cleanupError }) };
   } finally {
     if (handle) await handle.close();
-    if (created) await unlink(temporary);
+    if (created) {
+      try { await unlink(temporary); }
+      catch (error) {
+        if (!result) throw error;
+        pendingCleanup.add(temporary);
+        result.cleanup_pending = true;
+        result.cleanup_error = error.code ?? 'UNKNOWN';
+      }
+    }
   }
+  return result;
 }
